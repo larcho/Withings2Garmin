@@ -1,0 +1,15 @@
+{
+  "name": "withings2garmin",
+  "version": "0.0.1",
+  "description": "Tool to sync Withings readings to Garmin Connect.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Lars Klassen",
+  "license": "MIT",
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "typescript": "^5.5.4"
+  }
+}
