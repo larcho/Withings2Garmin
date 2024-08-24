@@ -1,4 +1,5 @@
 import {OAuth1Token, OAuth2Token} from './authtokens'
+import { GarthError } from './exceptions'
 import axios, {
   AxiosInstance,
   AxiosResponse,
@@ -12,10 +13,22 @@ const USER_AGENT = {
     'AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148',
 }
 
+interface iRequestOptions {
+  subdomain: string
+  path: string
+  params?: Record<string, string>
+  data?: Record<string, string>
+  config?: {
+    api?: boolean
+    referrer?: string | boolean
+    headers?: Record<string, string>
+  }
+}
+
 class Client {
   private sess: AxiosInstance
-  private lastResp?: AxiosResponse
-  private domain: string = 'garmin.com'
+  public lastResp?: AxiosResponse
+  public domain: string = 'garmin.com'
   private oauth1Token?: OAuth1Token
   private oauth2Token?: OAuth2Token
   private timeout: number = 10000
@@ -62,15 +75,13 @@ class Client {
 
   private async request(
     method: string,
-    subdomain: string,
-    path: string,
-    config: {
-      api?: boolean
-      referrer?: string | boolean
-      headers?: Record<string, string>
-    } = {},
+    requestOptions: iRequestOptions,
   ): Promise<AxiosResponse> {
-    const url = new URL(path, new URL(`https://${subdomain}.${this.domain}`))
+    const config = requestOptions.config || {}
+    const url = new URL(
+      requestOptions.path,
+      new URL(`https://${requestOptions.subdomain}.${this.domain}`),
+    )
     const headers = {...config.headers}
     if (config.referrer && this.lastResp) {
       headers['referer'] = this.lastResp.config.url || ''
@@ -82,16 +93,26 @@ class Client {
         url: url.toString(),
         headers,
         timeout: this.timeout,
-        ...config,
+        params: requestOptions.params || {},
+        data: requestOptions.data || {},
+        ...requestOptions.config
       })
       return this.lastResp
     } catch (error) {
       if (error instanceof AxiosError) {
-        throw new Error('Error in request', error)
+        throw new GarthError('Error in request', error)
       } else {
         throw error
       }
     }
+  }
+
+  public async get(requestOptions: iRequestOptions): Promise<AxiosResponse> {
+    return this.request('GET', requestOptions)
+  }
+
+  public async post(requestOptions: iRequestOptions): Promise<AxiosResponse> {
+    return this.request('POST', requestOptions)
   }
 }
 
