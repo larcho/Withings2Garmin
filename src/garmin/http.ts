@@ -1,11 +1,12 @@
 import {OAuth1Token, OAuth2Token} from './authtokens'
-import { GarthError } from './exceptions'
+import {GarthError} from './exceptions'
 import axios, {
   AxiosInstance,
   AxiosResponse,
   AxiosError,
   AxiosProxyConfig,
 } from 'axios'
+import qs from 'qs'
 
 const USER_AGENT = {
   'User-Agent':
@@ -87,6 +88,11 @@ class Client {
       headers['referer'] = this.lastResp.config.url || ''
     }
 
+    const data = requestOptions.data ? qs.stringify(requestOptions.data) : null
+    if (data) {
+      headers['content-type'] = 'application/x-www-form-urlencoded'
+    }
+
     try {
       this.lastResp = await this.sess.request({
         method,
@@ -94,12 +100,15 @@ class Client {
         headers,
         timeout: this.timeout,
         params: requestOptions.params || {},
-        data: requestOptions.data || {},
-        ...requestOptions.config
+        data,
+        ...requestOptions.config,
       })
       return this.lastResp
     } catch (error) {
       if (error instanceof AxiosError) {
+        if (error.response?.data) {
+          console.log(error.response.data)
+        }
         throw new GarthError('Error in request', error)
       } else {
         throw error

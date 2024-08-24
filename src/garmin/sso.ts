@@ -66,7 +66,7 @@ export default class GarminOAuth1Session {
     const csrfRe = /name="_csrf"\s+value="(.+?)"/
     const match = csrfRe.exec(html)
     if (match?.length) {
-      return match[0]
+      return match[1]
     } else {
       throw new GarthError('CSRF token not found')
     }
@@ -75,7 +75,7 @@ export default class GarminOAuth1Session {
   private assertTitle(html: string) {
     const titleRe = /<title>(.+?)<\/title>/
     const match = titleRe.exec(html)
-    if (!match || !match.length || match[0] !== 'Success') {
+    if (!match || !match.length || match[1] !== 'Success') {
       throw new GarthError('Login not succesful')
     }
   }
