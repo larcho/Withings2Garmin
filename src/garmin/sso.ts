@@ -7,6 +7,7 @@ import {OAuth1Token, OAuth2Token, iOAuth2Token} from './authtokens'
 
 // From https://github.com/matin/garth
 const CONSUMER_URL = 'https://thegarth.s3.amazonaws.com/oauth_consumer.json'
+const USER_AGENT = 'com.garmin.android.apps.connectmobile'
 
 const sleep = async (milliseconds: number) =>
   new Promise(resolve => {
@@ -22,17 +23,20 @@ export default class GarminOAuth1Session {
     this.client = client
     this.oauth1token = oauth1token
 
-    axios.get(CONSUMER_URL).then(response => {
-      const {consumer_key, consumer_secret} = response.data
-      this.oauth = new OAuth({
-        consumer: {key: consumer_key, secret: consumer_secret},
-        signature_method: 'HMAC-SHA1',
-        hash_function: (base_string, key) =>
-          crypto.createHmac('sha1', key).update(base_string).digest('base64'),
+    axios
+      .get(CONSUMER_URL)
+      .then(response => {
+        const {consumer_key, consumer_secret} = response.data
+        this.oauth = new OAuth({
+          consumer: {key: consumer_key, secret: consumer_secret},
+          signature_method: 'HMAC-SHA1',
+          hash_function: (base_string, key) =>
+            crypto.createHmac('sha1', key).update(base_string).digest('base64'),
+        })
       })
-    }).catch(error => {
-      throw new GarthError('Unable to fetch consumer data', error)
-    })
+      .catch(error => {
+        throw new GarthError('Unable to fetch consumer data', error)
+      })
   }
 
   async login(
@@ -143,7 +147,7 @@ export default class GarminOAuth1Session {
       config: {
         headers: {
           ...headers,
-          'User-Agent': 'com.garmin.android.apps.connectmobile',
+          'User-Agent': USER_AGENT,
         },
       },
     })
@@ -193,7 +197,7 @@ export default class GarminOAuth1Session {
       config: {
         headers: {
           ...headers,
-          'User-Agent': 'com.garmin.android.apps.connectmobile',
+          'User-Agent': USER_AGENT,
         },
       },
     })

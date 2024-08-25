@@ -21,13 +21,13 @@ export class OAuth1Token {
 }
 
 export interface iOAuth2Token {
-  readonly scope: string
-  readonly jti: string
-  readonly token_type: string
-  readonly access_token: string
-  readonly refresh_token: string
-  readonly expires_in: number
-  readonly refresh_token_expires_in: number
+  scope: string
+  jti: string
+  token_type: string
+  access_token: string
+  refresh_token: string
+  expires_in: number
+  refresh_token_expires_in: number
 }
 
 export class OAuth2Token {
@@ -59,9 +59,9 @@ export class OAuth2Token {
     this.refresh_token_expires_in = refresh_token_expires_in
 
     const now = new Date()
-    this.expires_at = new Date(now.getTime() + (expires_in * 1000))
+    this.expires_at = new Date(now.getTime() + expires_in * 1000)
     this.refresh_token_expires_at = new Date(
-      now.getTime() + (refresh_token_expires_in * 1000),
+      now.getTime() + refresh_token_expires_in * 1000,
     )
   }
 
