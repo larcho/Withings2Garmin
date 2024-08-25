@@ -27,7 +27,7 @@ interface iRequestOptions {
 }
 
 class Client {
-  private sess: AxiosInstance
+  public sess: AxiosInstance
   public lastResp?: AxiosResponse
   public domain: string = 'garmin.com'
   private oauth1Token?: OAuth1Token
