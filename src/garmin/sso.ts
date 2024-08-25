@@ -30,6 +30,8 @@ export default class GarminOAuth1Session {
         hash_function: (base_string, key) =>
           crypto.createHmac('sha1', key).update(base_string).digest('base64'),
       })
+    }).catch(error => {
+      throw new GarthError('Unable to fetch consumer data', error)
     })
   }
 
