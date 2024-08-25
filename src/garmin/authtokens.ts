@@ -20,6 +20,16 @@ export class OAuth1Token {
   }
 }
 
+export interface iOAuth2Token {
+  readonly scope: string
+  readonly jti: string
+  readonly token_type: string
+  readonly access_token: string
+  readonly refresh_token: string
+  readonly expires_in: number
+  readonly refresh_token_expires_in: number
+}
+
 export class OAuth2Token {
   readonly scope: string
   readonly jti: string
@@ -27,9 +37,9 @@ export class OAuth2Token {
   readonly access_token: string
   readonly refresh_token: string
   readonly expires_in: number
-  readonly expires_at: number
+  readonly expires_at: Date
   readonly refresh_token_expires_in: number
-  readonly refresh_token_expires_at: number
+  readonly refresh_token_expires_at: Date
 
   constructor(
     scope: string,
@@ -38,9 +48,7 @@ export class OAuth2Token {
     access_token: string,
     refresh_token: string,
     expires_in: number,
-    expires_at: number,
     refresh_token_expires_in: number,
-    refresh_token_expires_at: number,
   ) {
     this.scope = scope
     this.jti = jti
@@ -48,17 +56,21 @@ export class OAuth2Token {
     this.access_token = access_token
     this.refresh_token = refresh_token
     this.expires_in = expires_in
-    this.expires_at = expires_at
     this.refresh_token_expires_in = refresh_token_expires_in
-    this.refresh_token_expires_at = refresh_token_expires_at
+
+    const now = new Date()
+    this.expires_at = new Date(now.getTime() + (expires_in * 1000))
+    this.refresh_token_expires_at = new Date(
+      now.getTime() + (refresh_token_expires_in * 1000),
+    )
   }
 
   get expired(): boolean {
-    return this.expires_at < Math.floor(Date.now() / 1000)
+    return this.expires_at < new Date()
   }
 
   get refreshExpired(): boolean {
-    return this.refresh_token_expires_at < Math.floor(Date.now() / 1000)
+    return this.refresh_token_expires_at < new Date()
   }
 
   toString(): string {

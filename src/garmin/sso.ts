@@ -3,7 +3,7 @@ import {GarthError} from './exceptions'
 import OAuth from 'oauth-1.0a'
 import crypto from 'crypto'
 import axios from 'axios'
-import {OAuth1Token} from './authtokens'
+import {OAuth1Token, OAuth2Token, iOAuth2Token} from './authtokens'
 
 // From https://github.com/matin/garth
 const CONSUMER_URL = 'https://thegarth.s3.amazonaws.com/oauth_consumer.json'
@@ -33,7 +33,10 @@ export default class GarminOAuth1Session {
     })
   }
 
-  async login(email: string, password: string) {
+  async login(
+    email: string,
+    password: string,
+  ): Promise<{oauth1token: OAuth1Token; oauth2token: OAuth2Token}> {
     const ssoUrl = `https://sso.${this.client.domain}/sso`
     const ssoEmbedUrl = `${ssoUrl}/embed`
     const ssoEmbedParams = {
@@ -84,7 +87,10 @@ export default class GarminOAuth1Session {
     this.assertTitle(this.client.lastResp?.data || '')
     const ticket = this.parseTickets(this.client.lastResp?.data || '')
 
-    this.oauth1token = await this.getOAuth1Token(ticket)
+    const oauth1token = await this.getOAuth1Token(ticket)
+    this.oauth1token = oauth1token
+    const oauth2token = await this.exchangeToken()
+    return {oauth1token, oauth2token}
   }
 
   private getCSRFToken(html: string): string {
@@ -93,7 +99,7 @@ export default class GarminOAuth1Session {
     if (match?.length) {
       return match[1]
     } else {
-      throw new GarthError('CSRF token not found')
+      throw new GarthError('CSRF token not found.')
     }
   }
 
@@ -101,7 +107,7 @@ export default class GarminOAuth1Session {
     const titleRe = /<title>(.+?)<\/title>/
     const match = titleRe.exec(html)
     if (!match || !match.length || match[1] !== 'Success') {
-      throw new GarthError('Login not succesful')
+      throw new GarthError('Unable to log in.')
     }
   }
 
@@ -111,7 +117,7 @@ export default class GarminOAuth1Session {
     if (match?.length) {
       return match[1]
     } else {
-      throw new GarthError('Ticket not found')
+      throw new GarthError('Ticket not found.')
     }
   }
 
@@ -152,6 +158,61 @@ export default class GarminOAuth1Session {
     return new OAuth1Token(
       responseObject.oauth_token,
       responseObject.oauth_token_secret,
+    )
+  }
+
+  public async exchangeToken(): Promise<OAuth2Token> {
+    if (!this.oauth1token) {
+      throw new GarthError('OAuth1Token not found.')
+    }
+    while (!this.oauth) {
+      await sleep(100)
+    }
+    const data = {}
+    const subdomain = 'connectapi'
+    const path = '/oauth-service/oauth/exchange/user/2.0'
+    const url = `https://${subdomain}.${this.client.domain}${path}`
+    const requestData = {
+      url,
+      method: 'POST',
+      data,
+    }
+    const token = {
+      key: this.oauth1token.oauth_token,
+      secret: this.oauth1token.oauth_token_secret,
+    }
+    const headers = this.oauth.toHeader(
+      this.oauth.authorize(requestData, token),
+    )
+
+    await this.client.post({
+      subdomain,
+      path,
+      config: {
+        headers: {
+          ...headers,
+          'User-Agent': 'com.garmin.android.apps.connectmobile',
+        },
+      },
+    })
+    const {
+      scope,
+      jti,
+      access_token,
+      token_type,
+      refresh_token,
+      expires_in,
+      refresh_token_expires_in,
+    } = this.client.lastResp!.data as iOAuth2Token
+
+    return new OAuth2Token(
+      scope,
+      jti,
+      token_type,
+      access_token,
+      refresh_token,
+      expires_in,
+      refresh_token_expires_in,
     )
   }
 }
