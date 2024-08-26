@@ -13,6 +13,7 @@ import {
 import WithingsAuth from '../withings/auth'
 import GarminClient from '../garmin/http'
 import GarminSSO from '../garmin/sso'
+import WithingsMeasurements from '../withings/measurements'
 
 const fetchAuthTokens = async (): Promise<{
   withingsOAuth2Token: WithingsOAuth2Token
@@ -80,7 +81,17 @@ const fetchAuthTokens = async (): Promise<{
 
 const main = async () => {
   const tokens = await fetchAuthTokens()
-  console.log(tokens)
+  const withingsMeasurements = new WithingsMeasurements(
+    tokens.withingsOAuth2Token,
+  )
+  const measurements = await withingsMeasurements.getMeasurements()
+  for (let item of measurements.reverse()) {
+    if (item.weight) {
+      console.log(`Weight: ${item.weight} - ${item.datetime}`)
+      console.log(item)
+      break
+    }
+  }
 }
 
 main()
