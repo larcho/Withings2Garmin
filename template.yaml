@@ -1,0 +1,23 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: 'Application for sending Withings Weight data to Garmin Connect.'
+
+Resources:
+  WithingsOAuthSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties: 
+      Name: WithingsOAuthSecret
+      Description: 'Withings OAuth Credentials'
+      SecretString: 'REPLACE THROUGH SCRIPT'
+  GarminOAuth1Secret:
+    Type: AWS::SecretsManager::Secret
+    Properties: 
+      Name: GarminOAuth1Secret
+      Description: 'Garmin OAuth1 Credentials'
+      SecretString: 'REPLACE THROUGH SCRIPT'
+  GarminOAuth2Secret:
+    Type: AWS::SecretsManager::Secret
+    Properties: 
+      Name: GarminOAuth2Secret
+      Description: 'Garmin OAuth2 Credentials'
+      SecretString: 'REPLACE THROUGH SCRIPT'

@@ -4,6 +4,7 @@ import {OAuth2Token, iOAuth2Token} from './authtokens'
 
 const CONSUMER_URL =
   'https://withings2garmin.s3.amazonaws.com/withings_consumer.json'
+// From Jaros Withings-Sync
 const WITHINGS_CALLBACK_URL =
   'https://jaroslawhartman.github.io/withings-sync/contrib/withings.html'
 const AUTHORIZE_URL = 'https://account.withings.com/oauth2_user/authorize2'

@@ -16,6 +16,7 @@
     "typescript": "^5.5.4"
   },
   "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.637.0",
     "axios": "^1.7.5",
     "oauth-1.0a": "^2.2.6",
     "qs": "^6.13.0"
