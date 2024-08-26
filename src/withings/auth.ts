@@ -1,6 +1,7 @@
 import axios, {AxiosError} from 'axios'
 import {WithingsError} from './exceptions'
 import {OAuth2Token, iOAuth2Token} from './authtokens'
+import {sleep} from '../utils'
 
 const CONSUMER_URL =
   'https://withings2garmin.s3.amazonaws.com/withings_consumer.json'
@@ -9,11 +10,6 @@ const WITHINGS_CALLBACK_URL =
   'https://jaroslawhartman.github.io/withings-sync/contrib/withings.html'
 const AUTHORIZE_URL = 'https://account.withings.com/oauth2_user/authorize2'
 const TOKEN_URL = 'https://wbsapi.withings.net/v2/oauth2'
-
-const sleep = async (milliseconds: number) =>
-  new Promise(resolve => {
-    setTimeout(resolve, milliseconds)
-  })
 
 export default class WithingsAuth {
   private consumerKey?: string

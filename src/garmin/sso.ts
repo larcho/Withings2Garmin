@@ -4,15 +4,11 @@ import OAuth from 'oauth-1.0a'
 import crypto from 'crypto'
 import axios from 'axios'
 import {OAuth1Token, OAuth2Token, iOAuth2Token} from './authtokens'
+import {sleep} from '../utils'
 
 // From https://github.com/matin/garth
 const CONSUMER_URL = 'https://thegarth.s3.amazonaws.com/oauth_consumer.json'
 const USER_AGENT = 'com.garmin.android.apps.connectmobile'
-
-const sleep = async (milliseconds: number) =>
-  new Promise(resolve => {
-    setTimeout(resolve, milliseconds)
-  })
 
 export default class GarminOAuth1Session {
   private client: Client

@@ -36,3 +36,8 @@ export const getSecret = async (
   const result = await secretsManagerClient.send(command)
   return result.SecretString || ''
 }
+
+export const sleep = async (milliseconds: number) =>
+  new Promise(resolve => {
+    setTimeout(resolve, milliseconds)
+  })
