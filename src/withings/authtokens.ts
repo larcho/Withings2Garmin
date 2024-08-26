@@ -23,6 +23,7 @@ export class OAuth2Token {
     scope: string,
     expires_in: number,
     token_type: string,
+    expires_at?: string,
   ) {
     this.userid = userid
     this.access_token = access_token
@@ -31,8 +32,12 @@ export class OAuth2Token {
     this.expires_in = expires_in
     this.token_type = token_type
 
-    const now = new Date()
-    this.expires_at = new Date(now.getTime() + expires_in * 1000)
+    if(expires_at) {
+      this.expires_at = new Date(expires_at)
+    } else {
+      const now = new Date()
+      this.expires_at = new Date(now.getTime() + expires_in * 1000)
+    }
   }
 
   get expired(): boolean {

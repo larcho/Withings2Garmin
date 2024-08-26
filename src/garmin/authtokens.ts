@@ -49,6 +49,8 @@ export class OAuth2Token {
     refresh_token: string,
     expires_in: number,
     refresh_token_expires_in: number,
+    expires_at?: string,
+    refresh_token_expires_at?: string,
   ) {
     this.scope = scope
     this.jti = jti
@@ -59,10 +61,18 @@ export class OAuth2Token {
     this.refresh_token_expires_in = refresh_token_expires_in
 
     const now = new Date()
-    this.expires_at = new Date(now.getTime() + expires_in * 1000)
-    this.refresh_token_expires_at = new Date(
-      now.getTime() + refresh_token_expires_in * 1000,
-    )
+    if(expires_at) {
+      this.expires_at = new Date(expires_at)
+    } else {
+      this.expires_at = new Date(now.getTime() + expires_in * 1000)
+    }
+    if(refresh_token_expires_at) {
+      this.refresh_token_expires_at = new Date(refresh_token_expires_at)
+    } else {
+      this.refresh_token_expires_at = new Date(
+        now.getTime() + refresh_token_expires_in * 1000,
+      )
+    }
   }
 
   get expired(): boolean {

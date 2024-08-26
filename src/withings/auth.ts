@@ -80,4 +80,35 @@ export default class WithingsAuth {
       }
     }
   }
+
+  public async refreshAccessToken(accessToken: OAuth2Token): Promise<OAuth2Token> {
+    while (!this.consumerKey || !this.consumerSecret) {
+      await sleep(100)
+    }
+    try {
+      const params = new URLSearchParams({
+        action: 'requesttoken',
+        grant_type: 'refresh_token',
+        client_id: this.consumerKey,
+        client_secret: this.consumerSecret,
+        refresh_token: accessToken.refresh_token,
+      })
+      const response = await axios.post(TOKEN_URL, params)
+      const {body} = response.data as {status: number; body: iOAuth2Token}
+      return new OAuth2Token(
+        body.userid,
+        body.access_token,
+        body.refresh_token,
+        body.scope,
+        body.expires_in,
+        body.token_type,
+      )
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        throw new WithingsError('Error in request', error)
+      } else {
+        throw error
+      }
+    }
+  }
 }
