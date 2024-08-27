@@ -14,7 +14,9 @@ import WithingsAuth from '../withings/auth'
 import GarminClient from '../garmin/http'
 import GarminSSO from '../garmin/sso'
 import WithingsMeasurements from '../withings/measurements'
-import {FitEncoderWeight} from '../garmin/fit'
+import {FitEncoderWeight, FitEncoderBloodPressure} from '../garmin/fit'
+import moment from 'moment'
+import GarminApi from './garminapi'
 
 const fetchAuthTokens = async (): Promise<{
   withingsOAuth2Token: WithingsOAuth2Token
@@ -79,6 +81,15 @@ const fetchAuthTokens = async (): Promise<{
   return {withingsOAuth2Token, garminOAuth2Token}
 }
 
+const getLatestGarminStats = async () => {
+  const tokens = await fetchAuthTokens()
+  const garminClient = new GarminClient({oAuth2Token: tokens.garminOAuth2Token})
+
+  const api = new GarminApi(garminClient)
+
+  await api.getLatestEntryDate()
+}
+
 const main = async () => {
   const tokens = await fetchAuthTokens()
   const garminClient = new GarminClient({oAuth2Token: tokens.garminOAuth2Token})
@@ -87,6 +98,7 @@ const main = async () => {
   )
   const measurements = await withingsMeasurements.getMeasurements()
   for (let item of measurements.reverse()) {
+    /*
     if (item.weight && item.datetime) {
       const fitWeight = new FitEncoderWeight()
       fitWeight.writeFileInfo()
@@ -107,7 +119,25 @@ const main = async () => {
       console.log(response)
       break
     }
+    */
+    if(item.date && item.systolicBloodPressure) {
+      const bloodPressure = new FitEncoderBloodPressure()
+      bloodPressure.writeFileInfo()
+      bloodPressure.writeFileCreator()
+      bloodPressure.writeDeviceInfo({timestamp: item.date})
+      bloodPressure.writeBloodPressure({
+        timestamp: item.date,
+        diastolicBloodPressure: item.diastolicBloodPressure,
+        systolicBloodPressure: item.systolicBloodPressure,
+        heartRate: item.heartPulse,
+      })
+      bloodPressure.finish()
+      const filename = `bloodpressure_${item.date}.fit`
+      const response = await garminClient.upload(bloodPressure.buffer, filename)
+      console.log(response)
+      break
+    }
   }
 }
 
-main()
+getLatestGarminStats()

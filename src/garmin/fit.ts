@@ -346,7 +346,7 @@ class FitEncoder extends Fit {
     hardwareVersion = null,
     batteryStatus = null,
   }: {
-    timestamp: Date
+    timestamp: Date | number
     serialNumber?: number | null
     cumOperatingTime?: number | null
     manufacturer?: number | null
