@@ -1,4 +1,5 @@
 import axios, {AxiosError} from 'axios'
+import moment from 'moment'
 import {WithingsError} from './exceptions'
 import {OAuth2Token} from './authtokens'
 
@@ -30,7 +31,7 @@ interface iMeasureItem {
 interface iMeasureBody {
   updatetime: number
   timezone: string
-  measuregrps: iMeasureItem[]
+  measuregrps?: iMeasureItem[]
 }
 
 export default class WithingsMeasurements {
@@ -40,18 +41,48 @@ export default class WithingsMeasurements {
     this.oAuth2Token = oAuth2Token
   }
 
-  public async getMeasurements(): Promise<WithingsMeasureGroup[]> {
+  public async getMeasurements(
+    startDate: number,
+    endDate: number = moment().unix(),
+  ): Promise<WithingsMeasureGroup[]> {
     try {
       const params = new URLSearchParams({
         access_token: this.oAuth2Token.access_token,
         category: '1',
-        // TODO: Update with non hardcoded values
-        startdate: '1722085489',
-        enddate: '1724677556',
+        startdate: startDate.toString(),
+        enddate: endDate.toString(),
+      })
+
+      const response = await axios.post(GETMEAS_URL, params)
+      const {body} = response.data as {status: number; body: iMeasureBody}
+      return (body.measuregrps || []).map(item => new WithingsMeasureGroup(item))
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        console.log(error)
+        throw new WithingsError('Error in request', error)
+      } else {
+        throw error
+      }
+    }
+  }
+
+  public async getHeight(): Promise<number | null> {
+    try {
+      const params = new URLSearchParams({
+        access_token: this.oAuth2Token.access_token,
+        category: '1',
+        meastype: WithingsMeasure.TYPE_HEIGHT.toString(),
       })
       const response = await axios.post(GETMEAS_URL, params)
       const {body} = response.data as {status: number; body: iMeasureBody}
-      return body.measuregrps.map(item => new WithingsMeasureGroup(item))
+      const items = (body.measuregrps || []).map(item => new WithingsMeasureGroup(item))
+      items.sort((a, b) => (b.date || 0) - (a.date || 0))
+
+      if (items.length > 0) {
+        return items[0].height
+      } else {
+        return null
+      }
     } catch (error) {
       if (error instanceof AxiosError) {
         console.log(error)

@@ -41,3 +41,8 @@ export const sleep = async (milliseconds: number) =>
   new Promise(resolve => {
     setTimeout(resolve, milliseconds)
   })
+
+export const roundToPrecision = (value: number, precision: number) => {
+  const factor = Math.pow(10, precision)
+  return Math.round(value * factor) / factor
+}

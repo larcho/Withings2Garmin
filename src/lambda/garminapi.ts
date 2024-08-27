@@ -52,9 +52,9 @@ export default class GarminApi {
     const dailyWeightSummaries = weightData.dailyWeightSummaries || []
     if (
       dailyWeightSummaries.length > 0 &&
-      dailyWeightSummaries[0].latestWeight.date > latestEntry
+      (dailyWeightSummaries[0].latestWeight.timestampGMT / 1000) > latestEntry
     ) {
-      latestEntry = dailyWeightSummaries[0].latestWeight.date
+      latestEntry = (dailyWeightSummaries[0].latestWeight.timestampGMT / 1000)
     }
 
     const bloodPressurePath =

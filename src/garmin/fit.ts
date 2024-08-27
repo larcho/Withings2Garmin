@@ -524,7 +524,7 @@ export class FitEncoderWeight extends FitEncoder {
     visceralFatRating = null,
     bmi = null,
   }: {
-    timestamp: Date
+    timestamp: Date | number
     weight: number
     percentFat?: number | null
     percentHydration?: number | null
