@@ -4,6 +4,7 @@
   "description": "Tool to sync Withings readings to Garmin Connect.",
   "main": "index.js",
   "scripts": {
+    "setup": "ts-node src/scripts/setup.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Lars Klassen",

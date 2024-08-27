@@ -6,4 +6,32 @@ This project is heavily inspired by [Jarek Hartman's withings-sync](https://gith
 
 ## Setup
 
-TODO
+### Prerequisites
+
+In order to deploy you'll need **AWS SAM** and **AWS CLI** installed on your machine. For easier setup, make sure you set the default region for AWS CLI to be the same as the one where you deploy the app.
+
+### Install dependencies
+
+```bash
+yarn Install
+```
+
+### Build SAM App
+
+```bash
+sam build
+```
+
+### Deploy SAM App
+
+```bash
+sam deploy --guided
+```
+
+### Setup credentials
+
+This needs to be done after the app has been deployed, since SAM will create the required secrets.
+
+```bash
+yarn setup
+```
