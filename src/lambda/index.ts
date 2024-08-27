@@ -59,4 +59,18 @@ const main = async () => {
   }
 }
 
-main()
+export const handler = async () => {
+  try {
+    await main()
+    return {
+      statusCode: 200,
+      body: 'success',
+    }
+  } catch (error) {
+    console.log(error)
+    return {
+      statusCode: 500,
+      body: 'failed',
+    }
+  }
+}
