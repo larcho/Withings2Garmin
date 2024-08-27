@@ -19,17 +19,15 @@ const _calcCRC = (crc: number, byte: number): number => {
   return crc
 }
 
-const getFixedContent = (
-  val0: number,
-  val1: number,
-  val2: number,
-  val3: number,
+const _getFixedContent = (
+  msgNumber: number,
+  contentLength: number,
 ): Buffer => {
   const buffer = Buffer.alloc(5)
-  buffer.writeUInt8(val0, 0)
-  buffer.writeUInt8(val1, 1)
-  buffer.writeUInt16LE(val2, 2)
-  buffer.writeUInt8(val3, 4)
+  buffer.writeUInt8(0, 0)
+  buffer.writeUInt8(0, 1)
+  buffer.writeUInt16LE(msgNumber, 2)
+  buffer.writeUInt8(contentLength, 4)
   return buffer
 }
 
@@ -112,7 +110,7 @@ class FitBaseType {
     endian: 1,
     field: 0x89,
     name: 'float64',
-    invalid: 0xffffffffffffffff,
+    invalid: 0xfffffffffffff,
     size: 4,
   }
   static uint8z = {
@@ -147,26 +145,6 @@ class FitBaseType {
     invalid: 0xff,
     size: 1,
   } // array of byte, field is invalid if all bytes are invalid
-
-  static getFormat(basetype: {[key: string]: any}): string {
-    const formats: {[key: number]: string} = {
-      0: 'B',
-      1: 'b',
-      2: 'B',
-      3: 'h',
-      4: 'H',
-      5: 'i',
-      6: 'I',
-      7: 's',
-      8: 'f',
-      9: 'd',
-      10: 'B',
-      11: 'H',
-      12: 'I',
-      13: 'c',
-    }
-    return formats[basetype['#']]
-  }
 
   static pack(basetype: {[key: string]: any}, value: any): Buffer {
     const buffer = Buffer.alloc(basetype.size)
@@ -221,7 +199,6 @@ class FitBaseType {
 class Fit {
   static HEADER_SIZE = 12
 
-  // not sure if this is the mesg_num
   static GMSG_NUMS: {[key: string]: number} = {
     file_id: 0,
     device_info: 23,
@@ -237,7 +214,7 @@ class FitEncoder extends Fit {
   static LMSG_TYPE_FILE_CREATOR = 1
   static LMSG_TYPE_DEVICE_INFO = 2
 
-  public buf: Buffer
+  protected buf: Buffer
   private device_info_defined: boolean
 
   constructor() {
@@ -263,13 +240,13 @@ class FitEncoder extends Fit {
     dataSize: number = 0,
     dataType: string = '.FIT',
   ): void {
-    const s = Buffer.alloc(12)
+    const s = Buffer.alloc(headerSize)
     s.writeUInt8(headerSize, 0)
     s.writeUInt8(protocolVersion, 1)
     s.writeUInt16LE(profileVersion, 2)
     s.writeUInt32LE(dataSize, 4)
     s.write(dataType, 8)
-    this.buf = Buffer.concat([s, this.buf.slice(12)])
+    this.buf = Buffer.concat([s, this.buf.slice(headerSize)])
   }
 
   protected _buildContentBlock(content: any[]): [Buffer, Buffer] {
@@ -317,7 +294,7 @@ class FitEncoder extends Fit {
     const [fields, values] = this._buildContentBlock(content)
 
     const msgNumber = Fit.GMSG_NUMS['file_id']
-    const fixedContent = getFixedContent(0, 0, msgNumber, content.length)
+    const fixedContent = _getFixedContent(msgNumber, content.length)
 
     this.buf = Buffer.concat([
       this.buf,
@@ -341,7 +318,7 @@ class FitEncoder extends Fit {
     const [fields, values] = this._buildContentBlock(content)
 
     const msgNumber = Fit.GMSG_NUMS['file_creator']
-    const fixedContent = getFixedContent(0, 0, msgNumber, content.length)
+    const fixedContent = _getFixedContent(msgNumber, content.length)
 
     this.buf = Buffer.concat([
       this.buf,
@@ -386,7 +363,7 @@ class FitEncoder extends Fit {
     if (!this.device_info_defined) {
       const header = this.recordHeader(true, FitEncoder.LMSG_TYPE_DEVICE_INFO)
       const msgNumber = Fit.GMSG_NUMS['device_info']
-      const fixedContent = getFixedContent(0, 0, msgNumber, content.length)
+      const fixedContent = _getFixedContent(msgNumber, content.length)
       this.buf = Buffer.concat([this.buf, header, fixedContent, fields])
       this.device_info_defined = true
     }
@@ -442,15 +419,6 @@ class FitEncoder extends Fit {
       return t - FIT_EPOCH
     }
   }
-
-  private packUInt32(value: number): number[] {
-    return [
-      (value >> 24) & 0xff,
-      (value >> 16) & 0xff,
-      (value >> 8) & 0xff,
-      value & 0xff,
-    ]
-  }
 }
 
 export class FitEncoderBloodPressure extends FitEncoder {
@@ -494,7 +462,7 @@ export class FitEncoderBloodPressure extends FitEncoder {
         FitEncoderBloodPressure.LMSG_TYPE_BLOOD_PRESSURE,
       )
       const msgNumber = Fit.GMSG_NUMS['blood_pressure']
-      const fixedContent = getFixedContent(0, 0, msgNumber, content.length)
+      const fixedContent = _getFixedContent(msgNumber, content.length)
 
       this.buf = Buffer.concat([this.buf, header, fixedContent, fields])
       this.blood_pressure_monitor_defined = true
@@ -557,7 +525,7 @@ export class FitEncoderWeight extends FitEncoder {
         FitEncoderWeight.LMSG_TYPE_WEIGHT_SCALE,
       )
       const msgNumber = Fit.GMSG_NUMS['weight_scale']
-      const fixedContent = getFixedContent(0, 0, msgNumber, content.length)
+      const fixedContent = _getFixedContent(msgNumber, content.length)
 
       this.buf = Buffer.concat([this.buf, header, fixedContent, fields])
       this.weight_scale_defined = true
