@@ -12,18 +12,24 @@ const USER_AGENT = 'com.garmin.android.apps.connectmobile'
 
 export default class GarminOAuth1Session {
   private client: Client
-  private oauth?: OAuth
-  private oauth1token?: OAuth1Token
+  private oAuth?: OAuth
+  private oAuth1Token?: OAuth1Token
 
-  constructor(client: Client, oauth1token?: OAuth1Token) {
-    this.client = client
-    this.oauth1token = oauth1token
+  constructor({
+    client,
+    oAuth1Token,
+  }: {
+    client?: Client
+    oAuth1Token?: OAuth1Token
+  } = {}) {
+    this.client = client || new Client()
+    this.oAuth1Token = oAuth1Token
 
     axios
       .get(CONSUMER_URL)
       .then(response => {
         const {consumer_key, consumer_secret} = response.data
-        this.oauth = new OAuth({
+        this.oAuth = new OAuth({
           consumer: {key: consumer_key, secret: consumer_secret},
           signature_method: 'HMAC-SHA1',
           hash_function: (base_string, key) =>
@@ -38,7 +44,7 @@ export default class GarminOAuth1Session {
   async login(
     email: string,
     password: string,
-  ): Promise<{oauth1token: OAuth1Token; oauth2token: OAuth2Token}> {
+  ): Promise<{oAuth1Token: OAuth1Token; oAuth2Token: OAuth2Token}> {
     const ssoUrl = `https://sso.${this.client.domain}/sso`
     const ssoEmbedUrl = `${ssoUrl}/embed`
     const ssoEmbedParams = {
@@ -89,10 +95,10 @@ export default class GarminOAuth1Session {
     this.assertTitle(this.client.lastResp?.data || '')
     const ticket = this.parseTickets(this.client.lastResp?.data || '')
 
-    const oauth1token = await this.getOAuth1Token(ticket)
-    this.oauth1token = oauth1token
-    const oauth2token = await this.exchangeToken()
-    return {oauth1token, oauth2token}
+    const oAuth1Token = await this.getOAuth1Token(ticket)
+    this.oAuth1Token = oAuth1Token
+    const oAuth2Token = await this.exchangeToken()
+    return {oAuth1Token, oAuth2Token}
   }
 
   private getCSRFToken(html: string): string {
@@ -126,16 +132,18 @@ export default class GarminOAuth1Session {
   private async getOAuth1Token(ticket: string): Promise<OAuth1Token> {
     const loginUrl = `https://sso.${this.client.domain}/sso/embed`
     const subdomain = 'connectapi'
-    const path = `/oauth-service/oauth/preauthorized?ticket=${ticket}&login-url=${loginUrl}&accepts-mfa-tokens=true`
+    const path =
+      '/oauth-service/oauth/preauthorized' +
+      `?ticket=${ticket}&login-url=${loginUrl}&accepts-mfa-tokens=true`
     const url = `https://${subdomain}.${this.client.domain}${path}`
     const requestData = {
       url,
       method: 'GET',
     }
-    while (!this.oauth) {
+    while (!this.oAuth) {
       await sleep(100)
     }
-    const headers = this.oauth.toHeader(this.oauth.authorize(requestData))
+    const headers = this.oAuth.toHeader(this.oAuth.authorize(requestData))
 
     await this.client.get({
       subdomain,
@@ -164,10 +172,10 @@ export default class GarminOAuth1Session {
   }
 
   public async exchangeToken(): Promise<OAuth2Token> {
-    if (!this.oauth1token) {
+    if (!this.oAuth1Token) {
       throw new GarthError('OAuth1Token not found.')
     }
-    while (!this.oauth) {
+    while (!this.oAuth) {
       await sleep(100)
     }
     const data = {}
@@ -180,11 +188,11 @@ export default class GarminOAuth1Session {
       data,
     }
     const token = {
-      key: this.oauth1token.oauth_token,
-      secret: this.oauth1token.oauth_token_secret,
+      key: this.oAuth1Token.oauth_token,
+      secret: this.oAuth1Token.oauth_token_secret,
     }
-    const headers = this.oauth.toHeader(
-      this.oauth.authorize(requestData, token),
+    const headers = this.oAuth.toHeader(
+      this.oAuth.authorize(requestData, token),
     )
 
     await this.client.post({

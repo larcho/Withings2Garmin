@@ -68,8 +68,7 @@ const fetchAuthTokens = async (): Promise<{
       garminOAuth1Parsed.oauth_token,
       garminOAuth1Parsed.oauth_token_secret,
     )
-    const garminClient = new GarminClient()
-    const garminSSO = new GarminSSO(garminClient, garminOAuth1Token)
+    const garminSSO = new GarminSSO({oAuth1Token: garminOAuth1Token})
     garminOAuth2Token = await garminSSO.exchangeToken()
     await setSecret(
       Buffer.from(JSON.stringify(garminOAuth2Token)).toString('base64'),
@@ -82,7 +81,7 @@ const fetchAuthTokens = async (): Promise<{
 
 const main = async () => {
   const tokens = await fetchAuthTokens()
-  const garminClient = new GarminClient(undefined, tokens.garminOAuth2Token)
+  const garminClient = new GarminClient({oAuth2Token: tokens.garminOAuth2Token})
   const withingsMeasurements = new WithingsMeasurements(
     tokens.withingsOAuth2Token,
   )

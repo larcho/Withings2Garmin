@@ -1,11 +1,6 @@
-import {OAuth1Token, OAuth2Token} from './authtokens'
+import {OAuth2Token} from './authtokens'
 import {GarthError} from './exceptions'
-import axios, {
-  AxiosInstance,
-  AxiosResponse,
-  AxiosError,
-  AxiosProxyConfig,
-} from 'axios'
+import axios, {AxiosInstance, AxiosResponse, AxiosError} from 'axios'
 import qs from 'qs'
 
 const USER_AGENT = {
@@ -15,8 +10,8 @@ const USER_AGENT = {
 }
 
 interface iRequestOptions {
-  subdomain: string
   path: string
+  subdomain?: string
   api?: boolean
   params?: Record<string, string>
   data?: Record<string, string>
@@ -33,25 +28,24 @@ class Client {
   public sess: AxiosInstance
   public lastResp?: AxiosResponse
   public domain: string = 'garmin.com'
-  private oauth1Token?: OAuth1Token
-  private oauth2Token?: OAuth2Token
+  private oAuth2Token?: OAuth2Token
   private timeout: number = 10000
   private retries: number = 3
   private statusForcelist: number[] = [408, 429, 500, 502, 503, 504]
   private backoffFactor: number = 0.5
-  private poolConnections: number = 10
-  private poolMaxSize: number = 10
-  private profile?: Record<string, any>
 
-  // TODO: Update antipattern
-  constructor(
-    session?: AxiosInstance,
-    oauth2token?: OAuth2Token,
-    config: Record<string, any> = {},
-  ) {
+  constructor({
+    session,
+    oAuth2Token,
+    config,
+  }: {
+    session?: AxiosInstance
+    oAuth2Token?: OAuth2Token
+    config?: Record<string, any>
+  } = {}) {
     this.sess = session || axios.create()
     this.sess.defaults.headers.common = USER_AGENT
-    this.oauth2Token = oauth2token
+    this.oAuth2Token = oAuth2Token
     this.configure({
       timeout: this.timeout,
       retries: this.retries,
@@ -62,23 +56,17 @@ class Client {
   }
 
   private configure(config: {
-    oauth1Token?: OAuth1Token
     domain?: string
     timeout?: number
     retries?: number
     statusForcelist?: number[]
     backoffFactor?: number
-    poolConnections?: number
-    poolMaxSize?: number
   }) {
-    if (config.oauth1Token) this.oauth1Token = config.oauth1Token
     if (config.domain) this.domain = config.domain
     if (config.timeout) this.timeout = config.timeout
     if (config.retries) this.retries = config.retries
     if (config.statusForcelist) this.statusForcelist = config.statusForcelist
     if (config.backoffFactor) this.backoffFactor = config.backoffFactor
-    if (config.poolConnections) this.poolConnections = config.poolConnections
-    if (config.poolMaxSize) this.poolMaxSize = config.poolMaxSize
   }
 
   private async request(
@@ -89,7 +77,7 @@ class Client {
     const api = requestOptions.api || false
     const url = new URL(
       requestOptions.path,
-      new URL(`https://${requestOptions.subdomain}.${this.domain}`),
+      new URL(`https://${requestOptions.subdomain || 'www'}.${this.domain}`),
     )
     const headers = {...config.headers}
     if (config.referrer && this.lastResp) {
@@ -109,10 +97,10 @@ class Client {
     }
 
     if (api) {
-      if (!this.oauth2Token || this.oauth2Token.expired) {
+      if (!this.oAuth2Token || this.oAuth2Token.expired) {
         throw new GarthError('Invalid OAuth2 token, or token expired.')
       }
-      headers['Authorization'] = this.oauth2Token.toString()
+      headers['Authorization'] = this.oAuth2Token.toString()
     }
 
     try {
@@ -135,7 +123,7 @@ class Client {
     }
   }
 
-  private async connectApi(
+  public async connectApi(
     method: string = 'GET',
     requestOptions: iRequestOptions,
   ): Promise<any | undefined> {
@@ -165,7 +153,6 @@ class Client {
   ): Promise<any | undefined> {
     return this.connectApi('POST', {
       path: '/upload-service/upload',
-      subdomain: '',
       buffer,
       filename,
     })

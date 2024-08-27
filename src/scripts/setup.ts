@@ -1,5 +1,4 @@
 import * as readline from 'readline'
-import GarminClient from '../garmin/http'
 import GarminSSO from '../garmin/sso'
 import WithingsAuth from '../withings/auth'
 import {
@@ -22,8 +21,7 @@ const askQuestion = async (question: string): Promise<string> => {
   })
 }
 
-const garminClient = new GarminClient()
-const garminSSO = new GarminSSO(garminClient)
+const garminSSO = new GarminSSO()
 const withingsAuth = new WithingsAuth()
 
 const main = async () => {
@@ -31,11 +29,11 @@ const main = async () => {
   const garminPassword = await askQuestion('Garmin password: ')
   const garminTokens = await garminSSO.login(garminEmail, garminPassword)
   await setSecret(
-    Buffer.from(JSON.stringify(garminTokens.oauth1token)).toString('base64'),
+    Buffer.from(JSON.stringify(garminTokens.oAuth1Token)).toString('base64'),
     AWS_GARMIN_OAUTH1_SECRET,
   )
   await setSecret(
-    Buffer.from(JSON.stringify(garminTokens.oauth2token)).toString('base64'),
+    Buffer.from(JSON.stringify(garminTokens.oAuth2Token)).toString('base64'),
     AWS_GARMIN_OAUTH2_SECRET,
   )
   const withingsAuthenticationURL = await withingsAuth.getAuthenticationURL()
