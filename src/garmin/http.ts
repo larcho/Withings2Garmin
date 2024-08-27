@@ -17,8 +17,11 @@ const USER_AGENT = {
 interface iRequestOptions {
   subdomain: string
   path: string
+  api?: boolean
   params?: Record<string, string>
   data?: Record<string, string>
+  buffer?: Buffer
+  filename?: string
   config?: {
     api?: boolean
     referrer?: string | boolean
@@ -40,9 +43,15 @@ class Client {
   private poolMaxSize: number = 10
   private profile?: Record<string, any>
 
-  constructor(session?: AxiosInstance, config: Record<string, any> = {}) {
+  // TODO: Update antipattern
+  constructor(
+    session?: AxiosInstance,
+    oauth2token?: OAuth2Token,
+    config: Record<string, any> = {},
+  ) {
     this.sess = session || axios.create()
     this.sess.defaults.headers.common = USER_AGENT
+    this.oauth2Token = oauth2token
     this.configure({
       timeout: this.timeout,
       retries: this.retries,
@@ -54,7 +63,6 @@ class Client {
 
   private configure(config: {
     oauth1Token?: OAuth1Token
-    oauth2Token?: OAuth2Token
     domain?: string
     timeout?: number
     retries?: number
@@ -64,7 +72,6 @@ class Client {
     poolMaxSize?: number
   }) {
     if (config.oauth1Token) this.oauth1Token = config.oauth1Token
-    if (config.oauth2Token) this.oauth2Token = config.oauth2Token
     if (config.domain) this.domain = config.domain
     if (config.timeout) this.timeout = config.timeout
     if (config.retries) this.retries = config.retries
@@ -79,6 +86,7 @@ class Client {
     requestOptions: iRequestOptions,
   ): Promise<AxiosResponse> {
     const config = requestOptions.config || {}
+    const api = requestOptions.api || false
     const url = new URL(
       requestOptions.path,
       new URL(`https://${requestOptions.subdomain}.${this.domain}`),
@@ -90,7 +98,21 @@ class Client {
 
     const data = requestOptions.data ? qs.stringify(requestOptions.data) : null
     if (data) {
-      headers['content-type'] = 'application/x-www-form-urlencoded'
+      headers['Content-Type'] = 'application/x-www-form-urlencoded'
+    }
+    const buffer = requestOptions.buffer
+    if (buffer) {
+      const filename = requestOptions.filename || ''
+      headers['Content-Type'] = 'application/octet-stream'
+      headers['Content-Length'] = buffer.length.toString()
+      headers['Content-Disposition'] = `attachment; filename="${filename}"`
+    }
+
+    if (api) {
+      if (!this.oauth2Token || this.oauth2Token.expired) {
+        throw new GarthError('Invalid OAuth2 token, or token expired.')
+      }
+      headers['Authorization'] = this.oauth2Token.toString()
     }
 
     try {
@@ -100,19 +122,32 @@ class Client {
         headers,
         timeout: this.timeout,
         params: requestOptions.params || {},
-        data,
+        data: buffer || data,
         ...requestOptions.config,
       })
       return this.lastResp
     } catch (error) {
       if (error instanceof AxiosError) {
-        if (error.response?.data) {
-          console.log(error.response.data)
-        }
         throw new GarthError('Error in request', error)
       } else {
         throw error
       }
+    }
+  }
+
+  private async connectApi(
+    method: string = 'GET',
+    requestOptions: iRequestOptions,
+  ): Promise<any | undefined> {
+    const response = await this.request(method, {
+      ...requestOptions,
+      subdomain: 'connectapi',
+      api: true,
+    })
+    if (response.status === 204) {
+      return undefined
+    } else {
+      return response.data
     }
   }
 
@@ -122,6 +157,18 @@ class Client {
 
   public async post(requestOptions: iRequestOptions): Promise<AxiosResponse> {
     return this.request('POST', requestOptions)
+  }
+
+  public async upload(
+    buffer: Buffer,
+    filename: string,
+  ): Promise<any | undefined> {
+    return this.connectApi('POST', {
+      path: '/upload-service/upload',
+      subdomain: '',
+      buffer,
+      filename,
+    })
   }
 }
 

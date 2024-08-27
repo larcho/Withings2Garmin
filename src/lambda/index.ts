@@ -14,6 +14,7 @@ import WithingsAuth from '../withings/auth'
 import GarminClient from '../garmin/http'
 import GarminSSO from '../garmin/sso'
 import WithingsMeasurements from '../withings/measurements'
+import {FitEncoderWeight} from '../garmin/fit'
 
 const fetchAuthTokens = async (): Promise<{
   withingsOAuth2Token: WithingsOAuth2Token
@@ -81,14 +82,31 @@ const fetchAuthTokens = async (): Promise<{
 
 const main = async () => {
   const tokens = await fetchAuthTokens()
+  const garminClient = new GarminClient(undefined, tokens.garminOAuth2Token)
   const withingsMeasurements = new WithingsMeasurements(
     tokens.withingsOAuth2Token,
   )
   const measurements = await withingsMeasurements.getMeasurements()
   for (let item of measurements.reverse()) {
-    if (item.weight) {
-      console.log(`Weight: ${item.weight} - ${item.datetime}`)
-      console.log(item)
+    if (item.weight && item.datetime) {
+      const fitWeight = new FitEncoderWeight()
+      fitWeight.writeFileInfo()
+      fitWeight.writeFileCreator()
+      fitWeight.writeDeviceInfo(item.datetime)
+      fitWeight.writeWeightScale(
+        item.datetime,
+        item.weight,
+        item.fatRatio,
+        item.hydration,
+        null,
+        item.boneMass,
+        item.muscleMass,
+      )
+      fitWeight.finish()
+
+      const filename = `weight_${item.date || ''}.fit`
+      const response = await garminClient.upload(fitWeight.getValue(), filename)
+      console.log(response)
       break
     }
   }
