@@ -41,7 +41,7 @@ export default class GarminOAuth1Session {
       })
   }
 
-  async login(
+  public async login(
     email: string,
     password: string,
   ): Promise<{oAuth1Token: OAuth1Token; oAuth2Token: OAuth2Token}> {
@@ -75,7 +75,7 @@ export default class GarminOAuth1Session {
       params: signInParams,
     })
 
-    const csrfToken = this.getCSRFToken(this.client.lastResp?.data || '')
+    const csrfToken = this._getCSRFToken(this.client.lastResp?.data || '')
 
     // Submit login form with email and password
     await this.client.post({
@@ -92,16 +92,16 @@ export default class GarminOAuth1Session {
         referrer: true,
       },
     })
-    this.assertTitle(this.client.lastResp?.data || '')
-    const ticket = this.parseTickets(this.client.lastResp?.data || '')
+    this._assertTitle(this.client.lastResp?.data || '')
+    const ticket = this._parseTickets(this.client.lastResp?.data || '')
 
-    const oAuth1Token = await this.getOAuth1Token(ticket)
+    const oAuth1Token = await this._getOAuth1Token(ticket)
     this.oAuth1Token = oAuth1Token
     const oAuth2Token = await this.exchangeToken()
     return {oAuth1Token, oAuth2Token}
   }
 
-  private getCSRFToken(html: string): string {
+  private _getCSRFToken(html: string): string {
     const csrfRe = /name="_csrf"\s+value="(.+?)"/
     const match = csrfRe.exec(html)
     if (match?.length) {
@@ -111,7 +111,7 @@ export default class GarminOAuth1Session {
     }
   }
 
-  private assertTitle(html: string) {
+  private _assertTitle(html: string) {
     const titleRe = /<title>(.+?)<\/title>/
     const match = titleRe.exec(html)
     if (!match || !match.length || match[1] !== 'Success') {
@@ -119,7 +119,7 @@ export default class GarminOAuth1Session {
     }
   }
 
-  private parseTickets(html: string): string {
+  private _parseTickets(html: string): string {
     const ticketRe = /embed\?ticket=([^"]+)"/
     const match = ticketRe.exec(html)
     if (match?.length) {
@@ -129,7 +129,7 @@ export default class GarminOAuth1Session {
     }
   }
 
-  private async getOAuth1Token(ticket: string): Promise<OAuth1Token> {
+  private async _getOAuth1Token(ticket: string): Promise<OAuth1Token> {
     const loginUrl = `https://sso.${this.client.domain}/sso/embed`
     const subdomain = 'connectapi'
     const path =

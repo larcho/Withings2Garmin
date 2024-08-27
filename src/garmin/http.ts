@@ -46,7 +46,7 @@ class Client {
     this.sess = session || axios.create()
     this.sess.defaults.headers.common = USER_AGENT
     this.oAuth2Token = oAuth2Token
-    this.configure({
+    this._configure({
       timeout: this.timeout,
       retries: this.retries,
       statusForcelist: this.statusForcelist,
@@ -55,7 +55,7 @@ class Client {
     })
   }
 
-  private configure(config: {
+  private _configure(config: {
     domain?: string
     timeout?: number
     retries?: number
@@ -69,7 +69,7 @@ class Client {
     if (config.backoffFactor) this.backoffFactor = config.backoffFactor
   }
 
-  private async request(
+  private async _request(
     method: string,
     requestOptions: iRequestOptions,
   ): Promise<AxiosResponse> {
@@ -127,7 +127,7 @@ class Client {
     method: string = 'GET',
     requestOptions: iRequestOptions,
   ): Promise<any | undefined> {
-    const response = await this.request(method, {
+    const response = await this._request(method, {
       ...requestOptions,
       subdomain: 'connectapi',
       api: true,
@@ -140,11 +140,11 @@ class Client {
   }
 
   public async get(requestOptions: iRequestOptions): Promise<AxiosResponse> {
-    return this.request('GET', requestOptions)
+    return this._request('GET', requestOptions)
   }
 
   public async post(requestOptions: iRequestOptions): Promise<AxiosResponse> {
-    return this.request('POST', requestOptions)
+    return this._request('POST', requestOptions)
   }
 
   public async upload(

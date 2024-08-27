@@ -91,20 +91,19 @@ const main = async () => {
       const fitWeight = new FitEncoderWeight()
       fitWeight.writeFileInfo()
       fitWeight.writeFileCreator()
-      fitWeight.writeDeviceInfo(item.datetime)
-      fitWeight.writeWeightScale(
-        item.datetime,
-        item.weight,
-        item.fatRatio,
-        item.hydration,
-        null,
-        item.boneMass,
-        item.muscleMass,
-      )
+      fitWeight.writeDeviceInfo({timestamp: item.datetime})
+      fitWeight.writeWeightScale({
+        timestamp: item.datetime,
+        weight: item.weight,
+        percentFat: item.fatRatio,
+        percentHydration: item.hydration,
+        boneMass: item.boneMass,
+        muscleMass: item.muscleMass,
+      })
       fitWeight.finish()
 
       const filename = `weight_${item.date || ''}.fit`
-      const response = await garminClient.upload(fitWeight.getValue(), filename)
+      const response = await garminClient.upload(fitWeight.buffer, filename)
       console.log(response)
       break
     }

@@ -19,10 +19,7 @@ const _calcCRC = (crc: number, byte: number): number => {
   return crc
 }
 
-const _getFixedContent = (
-  msgNumber: number,
-  contentLength: number,
-): Buffer => {
+const _getFixedContent = (msgNumber: number, contentLength: number): Buffer => {
   const buffer = Buffer.alloc(5)
   buffer.writeUInt8(0, 0)
   buffer.writeUInt8(0, 1)
@@ -224,22 +221,19 @@ class FitEncoder extends Fit {
     this.writeHeader() // create header first
   }
 
-  toString(): string {
-    const lines: string[] = []
-    for (let i = 0; i < this.buf.length; i += 16) {
-      const b = this.buf.slice(i, i + 16)
-      lines.push([...b].map(c => c.toString(16).padStart(2, '0')).join(' '))
-    }
-    return lines.join('\n')
-  }
-
-  writeHeader(
-    headerSize: number = Fit.HEADER_SIZE,
-    protocolVersion: number = 16,
-    profileVersion: number = 108,
-    dataSize: number = 0,
-    dataType: string = '.FIT',
-  ): void {
+  public writeHeader({
+    headerSize = Fit.HEADER_SIZE,
+    protocolVersion = 16,
+    profileVersion = 108,
+    dataSize = 0,
+    dataType = '.FIT',
+  }: {
+    headerSize?: number
+    protocolVersion?: number
+    profileVersion?: number
+    dataSize?: number
+    dataType?: string
+  } = {}): void {
     const s = Buffer.alloc(headerSize)
     s.writeUInt8(headerSize, 0)
     s.writeUInt8(protocolVersion, 1)
@@ -271,20 +265,26 @@ class FitEncoder extends Fit {
     return [Buffer.concat(fieldDefs), Buffer.concat(values)]
   }
 
-  writeFileInfo(
-    serialNumber: number | null = null,
-    timeCreated: Date | number | null = null,
-    manufacturer: number | null = null,
-    product: number | null = null,
-    number: number | null = null,
-  ): void {
+  public writeFileInfo({
+    serialNumber = null,
+    timeCreated = null,
+    manufacturer = null,
+    product = null,
+    number = null,
+  }: {
+    serialNumber?: number | null
+    timeCreated?: Date | number | null
+    manufacturer?: number | null
+    product?: number | null
+    number?: number | null
+  } = {}): void {
     if (!timeCreated) {
       timeCreated = new Date()
     }
 
     const content = [
       [3, FitBaseType.uint32z, serialNumber, null],
-      [4, FitBaseType.uint32, this.timestamp(timeCreated), null],
+      [4, FitBaseType.uint32, this._timestamp(timeCreated), null],
       [1, FitBaseType.uint16, manufacturer, null],
       [2, FitBaseType.uint16, product, null],
       [5, FitBaseType.uint16, number, null],
@@ -298,18 +298,21 @@ class FitEncoder extends Fit {
 
     this.buf = Buffer.concat([
       this.buf,
-      this.recordHeader(true, FitEncoder.LMSG_TYPE_FILE_INFO),
+      this._recordHeader(true, FitEncoder.LMSG_TYPE_FILE_INFO),
       fixedContent,
       fields,
-      this.recordHeader(false, FitEncoder.LMSG_TYPE_FILE_INFO),
+      this._recordHeader(false, FitEncoder.LMSG_TYPE_FILE_INFO),
       values,
     ])
   }
 
-  writeFileCreator(
-    softwareVersion: number | null = null,
-    hardwareVersion: number | null = null,
-  ): void {
+  public writeFileCreator({
+    softwareVersion = null,
+    hardwareVersion = null,
+  }: {
+    softwareVersion?: number | null
+    hardwareVersion?: number | null
+  } = {}): void {
     const content = [
       [0, FitBaseType.uint16, softwareVersion, null],
       [1, FitBaseType.uint8, hardwareVersion, null],
@@ -322,29 +325,41 @@ class FitEncoder extends Fit {
 
     this.buf = Buffer.concat([
       this.buf,
-      this.recordHeader(true, FitEncoder.LMSG_TYPE_FILE_CREATOR),
+      this._recordHeader(true, FitEncoder.LMSG_TYPE_FILE_CREATOR),
       fixedContent,
       fields,
-      this.recordHeader(false, FitEncoder.LMSG_TYPE_FILE_CREATOR),
+      this._recordHeader(false, FitEncoder.LMSG_TYPE_FILE_CREATOR),
       values,
     ])
   }
 
-  writeDeviceInfo(
-    timestamp: Date,
-    serialNumber: number | null = null,
-    cumOperatingTime: number | null = null,
-    manufacturer: number | null = null,
-    product: number | null = null,
-    softwareVersion: number | null = null,
-    batteryVoltage: number | null = null,
-    deviceIndex: number | null = null,
-    deviceType: number | null = null,
-    hardwareVersion: number | null = null,
-    batteryStatus: number | null = null,
-  ): void {
+  public writeDeviceInfo({
+    timestamp,
+    serialNumber = null,
+    cumOperatingTime = null,
+    manufacturer = null,
+    product = null,
+    softwareVersion = null,
+    batteryVoltage = null,
+    deviceIndex = null,
+    deviceType = null,
+    hardwareVersion = null,
+    batteryStatus = null,
+  }: {
+    timestamp: Date
+    serialNumber?: number | null
+    cumOperatingTime?: number | null
+    manufacturer?: number | null
+    product?: number | null
+    softwareVersion?: number | null
+    batteryVoltage?: number | null
+    deviceIndex?: number | null
+    deviceType?: number | null
+    hardwareVersion?: number | null
+    batteryStatus?: number | null
+  }): void {
     const content = [
-      [253, FitBaseType.uint32, this.timestamp(timestamp), 1],
+      [253, FitBaseType.uint32, this._timestamp(timestamp), 1],
       [3, FitBaseType.uint32z, serialNumber, 1],
       [7, FitBaseType.uint32, cumOperatingTime, 1],
       [8, FitBaseType.uint32, null, null], // unknown field(undocumented)
@@ -361,18 +376,18 @@ class FitEncoder extends Fit {
     const [fields, values] = this._buildContentBlock(content)
 
     if (!this.device_info_defined) {
-      const header = this.recordHeader(true, FitEncoder.LMSG_TYPE_DEVICE_INFO)
+      const header = this._recordHeader(true, FitEncoder.LMSG_TYPE_DEVICE_INFO)
       const msgNumber = Fit.GMSG_NUMS['device_info']
       const fixedContent = _getFixedContent(msgNumber, content.length)
       this.buf = Buffer.concat([this.buf, header, fixedContent, fields])
       this.device_info_defined = true
     }
 
-    const header = this.recordHeader(false, FitEncoder.LMSG_TYPE_DEVICE_INFO)
+    const header = this._recordHeader(false, FitEncoder.LMSG_TYPE_DEVICE_INFO)
     this.buf = Buffer.concat([this.buf, header, values])
   }
 
-  protected recordHeader(
+  protected _recordHeader(
     definition: boolean = false,
     lmsgType: number = 0,
   ): Buffer {
@@ -396,22 +411,22 @@ class FitEncoder extends Fit {
     return crcBuffer
   }
 
-  finish(): void {
-    const dataSize = this.getSize() - Fit.HEADER_SIZE
-    this.writeHeader(Fit.HEADER_SIZE, 16, 108, dataSize)
+  public finish(): void {
+    const dataSize = this.size - Fit.HEADER_SIZE
+    this.writeHeader({dataSize})
     const crc = this.crc()
     this.buf = Buffer.concat([this.buf, crc])
   }
 
-  getSize(): number {
+  get size(): number {
     return this.buf.length
   }
 
-  getValue(): Buffer {
+  get buffer(): Buffer {
     return this.buf
   }
 
-  protected timestamp(t: Date | number): number {
+  protected _timestamp(t: Date | number): number {
     const FIT_EPOCH = 631065600 // UTC 00:00 Dec 31 1989
     if (t instanceof Date) {
       return Math.floor(t.getTime() / 1000) - FIT_EPOCH
@@ -432,19 +447,27 @@ export class FitEncoderBloodPressure extends FitEncoder {
     this.blood_pressure_monitor_defined = false
   }
 
-  writeBloodPressure(
-    timestamp: Date | number,
-    diastolicBloodPressure: number | null = null,
-    systolicBloodPressure: number | null = null,
-    meanArterialPressure: number | null = null,
-    map3SampleMean: number | null = null,
-    mapMorningValues: number | null = null,
-    mapEveningValues: number | null = null,
-    heartRate: number | null = null,
-  ): void {
-    // BLOOD PRESSURE FILE MESSAGES
+  public writeBloodPressure({
+    timestamp,
+    diastolicBloodPressure = null,
+    systolicBloodPressure = null,
+    meanArterialPressure = null,
+    map3SampleMean = null,
+    mapMorningValues = null,
+    mapEveningValues = null,
+    heartRate = null,
+  }: {
+    timestamp: Date | number
+    diastolicBloodPressure?: number | null
+    systolicBloodPressure?: number | null
+    meanArterialPressure?: number | null
+    map3SampleMean?: number | null
+    mapMorningValues?: number | null
+    mapEveningValues?: number | null
+    heartRate?: number | null
+  }): void {
     const content = [
-      [253, FitBaseType.uint32, this.timestamp(timestamp), 1],
+      [253, FitBaseType.uint32, this._timestamp(timestamp), 1],
       [0, FitBaseType.uint16, systolicBloodPressure, 1],
       [1, FitBaseType.uint16, diastolicBloodPressure, 1],
       [2, FitBaseType.uint16, meanArterialPressure, 1],
@@ -457,7 +480,7 @@ export class FitEncoderBloodPressure extends FitEncoder {
     const [fields, values] = this._buildContentBlock(content)
 
     if (!this.blood_pressure_monitor_defined) {
-      const header = this.recordHeader(
+      const header = this._recordHeader(
         true,
         FitEncoderBloodPressure.LMSG_TYPE_BLOOD_PRESSURE,
       )
@@ -468,7 +491,7 @@ export class FitEncoderBloodPressure extends FitEncoder {
       this.blood_pressure_monitor_defined = true
     }
 
-    const header = this.recordHeader(
+    const header = this._recordHeader(
       false,
       FitEncoderBloodPressure.LMSG_TYPE_BLOOD_PRESSURE,
     )
@@ -486,23 +509,37 @@ export class FitEncoderWeight extends FitEncoder {
     this.weight_scale_defined = false
   }
 
-  writeWeightScale(
-    timestamp: Date,
-    weight: number,
-    percentFat: number | null = null,
-    percentHydration: number | null = null,
-    visceralFatMass: number | null = null,
-    boneMass: number | null = null,
-    muscleMass: number | null = null,
-    basalMet: number | null = null,
-    activeMet: number | null = null,
-    physiqueRating: number | null = null,
-    metabolicAge: number | null = null,
-    visceralFatRating: number | null = null,
-    bmi: number | null = null,
-  ): void {
+  public writeWeightScale({
+    timestamp,
+    weight,
+    percentFat = null,
+    percentHydration = null,
+    visceralFatMass = null,
+    boneMass = null,
+    muscleMass = null,
+    basalMet = null,
+    activeMet = null,
+    physiqueRating = null,
+    metabolicAge = null,
+    visceralFatRating = null,
+    bmi = null,
+  }: {
+    timestamp: Date
+    weight: number
+    percentFat?: number | null
+    percentHydration?: number | null
+    visceralFatMass?: number | null
+    boneMass?: number | null
+    muscleMass?: number | null
+    basalMet?: number | null
+    activeMet?: number | null
+    physiqueRating?: number | null
+    metabolicAge?: number | null
+    visceralFatRating?: number | null
+    bmi?: number | null
+  }): void {
     const content = [
-      [253, FitBaseType.uint32, this.timestamp(timestamp), 1],
+      [253, FitBaseType.uint32, this._timestamp(timestamp), 1],
       [0, FitBaseType.uint16, weight, 100],
       [1, FitBaseType.uint16, percentFat, 100],
       [2, FitBaseType.uint16, percentHydration, 100],
@@ -520,7 +557,7 @@ export class FitEncoderWeight extends FitEncoder {
     const [fields, values] = this._buildContentBlock(content)
 
     if (!this.weight_scale_defined) {
-      const header = this.recordHeader(
+      const header = this._recordHeader(
         true,
         FitEncoderWeight.LMSG_TYPE_WEIGHT_SCALE,
       )
@@ -531,7 +568,7 @@ export class FitEncoderWeight extends FitEncoder {
       this.weight_scale_defined = true
     }
 
-    const header = this.recordHeader(
+    const header = this._recordHeader(
       false,
       FitEncoderWeight.LMSG_TYPE_WEIGHT_SCALE,
     )
