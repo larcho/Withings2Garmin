@@ -4,9 +4,7 @@ import axios, {AxiosInstance, AxiosResponse, AxiosError} from 'axios'
 import qs from 'qs'
 
 const USER_AGENT = {
-  'User-Agent':
-    'Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) ' +
-    'AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148',
+  'User-Agent': '"GCM-iOS-5.7.2.1"'
 }
 
 interface iRequestOptions {
